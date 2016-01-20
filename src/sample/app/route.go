@@ -13,20 +13,21 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
+	"sample/controller"
 	"strings"
+
 	"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
-	"sample/controller"
 )
 
 type routeMap map[string]func(web.C, http.ResponseWriter, *http.Request)
 
 var sampleRoute = routeMap{
-	"request":      controller.SampleTest,
+	"request": controller.SampleTest,
 }
 
 var sampleRoute2 = routeMap{
-	"request": controller.SampleTest,
+	"request": controller.SampleTest2,
 }
 
 var webRoute = routeMap{

@@ -10,11 +10,13 @@ package app
 /**************************************************************************************************/
 import (
 	"flag"
+	"math/rand"
 	"net/http"
 	. "sample/controller"
+	"time"
+
 	"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
-	"fmt"
 )
 
 /**************************************************************************************************/
@@ -23,17 +25,17 @@ import (
  */
 /**************************************************************************************************/
 func Run() {
+
+	rand.Seed(time.Now().UnixNano())
+
 	// make route
 	t := postRoute("/sample1", sampleRoute)
-	t.Use(UseNewUser)
-	t.Use(UseCommon)
+	t.Use(UseDefault)
 
 	t2 := postRoute("/sample2", sampleRoute2)
-	t2.Use(UseNewUser)
-	t2.Use(UseCommon)
+	t2.Use(UserUserId)
 
-	w := getRoute("/web", webRoute)
-	w.Use(UseCommon)
+	getRoute("/web", webRoute)
 
 	// PORTを設定
 	flag.Set("bind", ":9999")
@@ -42,40 +44,12 @@ func Run() {
 
 /**************************************************************************************************/
 /*!
- *  リクエスト毎の共通事前処理
- */
-/**************************************************************************************************/
-func UseCommon(c *web.C, h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		// アクセス表示
-		fmt.Println(r.RequestURI)
-
-		h.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
-}
-
-/**************************************************************************************************/
-/*!
  *  AnalyzeType : NewUserの事前処理
  */
 /**************************************************************************************************/
-func UseNewUser(c *web.C, h http.Handler) http.Handler {
+func UseDefault(c *web.C, h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		BodyAnalyze(c, r, AnalyzeType(OnNewUser))
-		h.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
-}
-
-/**************************************************************************************************/
-/*!
- *  AnalyzeType : Loginの事前処理
- */
-/**************************************************************************************************/
-func UseLogin(c *web.C, h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		BodyAnalyze(c, r, AnalyzeType(OnLogin))
+		BodyAnalyze(c, r, AnalyzeType(OnDefault))
 		h.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)
@@ -86,9 +60,9 @@ func UseLogin(c *web.C, h http.Handler) http.Handler {
  *  AnalyzeType : Defaultの事前処理
  */
 /**************************************************************************************************/
-func UseDefault(c *web.C, h http.Handler) http.Handler {
+func UserUserId(c *web.C, h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		BodyAnalyze(c, r, AnalyzeType(OnDefault))
+		BodyAnalyze(c, r, AnalyzeType(OnUserId))
 		h.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(fn)

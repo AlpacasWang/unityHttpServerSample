@@ -5,8 +5,19 @@ import (
 	"net/http"
 	"reflect"
 
+	"sample/conf/context"
+
+	"math/rand"
+	"sample/common/err"
+
+	"time"
+
 	"github.com/zenazn/goji/web"
 )
+
+// 暗号化キー
+const SECRET_KEY = "0123456789ABCDEF"
+const USER_KEY = "FEDCBA9876543210"
 
 type StructTestInner struct {
 	Id    int
@@ -32,14 +43,18 @@ type StructTestReceive struct {
 /**************************************************************************************************/
 func SampleTest(c web.C, w http.ResponseWriter, r *http.Request) {
 
+	secretKey := SECRET_KEY
+
 	var rec = map[string]interface{}{}
-	ew := DecryptAndUnpack(c, rec)
+	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
-		ResError(InCorrectData, "decrypt and unpack error", w, ew)
+		ResError("decrypt and unpack error", w, ew)
 		return
 	}
 	d := analyze(rec)
+	fmt.Println("get param : ")
 	fmt.Println(d)
+	fmt.Println()
 
 	type returnData struct {
 		Id          int
@@ -78,11 +93,53 @@ func SampleTest(c web.C, w http.ResponseWriter, r *http.Request) {
 	ret.Array = []int{127, 61234, 2147483640, -2147483640}
 	ret.Struct = structData
 	ret.StructArray = arrays
-	fmt.Println("return : ", ret)
-	ResWrite(ret, w)
+	fmt.Println("ret data  : ")
+	fmt.Println(ret)
+	ResWrite(c, ret, w)
 }
 
-// 変数へのアクセステスト
+/**************************************************************************************************/
+/*!
+ *  サンプル実装2
+ */
+/**************************************************************************************************/
+func SampleTest2(c web.C, w http.ResponseWriter, r *http.Request) {
+
+	userId, ok := c.Env[context.UserId]
+	if !ok {
+		ResError("userId not found", w, err.NewErrWriter())
+	}
+	fmt.Println("user id   : ", userId)
+
+	secretKey := USER_KEY
+
+	var rec = map[string]interface{}{}
+	ew := DecryptAndUnpack(c, rec, secretKey)
+	if ew.HasErr() {
+		ResError("decrypt and unpack error", w, ew)
+		return
+	}
+	d := analyze(rec)
+	fmt.Println("get param : ", d)
+
+	type returnData struct {
+		Num int
+	}
+	ret := new(returnData)
+
+	// 一秒まつ
+	time.Sleep(1 * time.Second)
+
+	ret.Num = rand.Intn(100000)
+	fmt.Println("ret num   : ", ret.Num)
+	ResWrite(c, ret, w)
+}
+
+/**************************************************************************************************/
+/*!
+ *  変数へのアクセステスト
+ */
+/**************************************************************************************************/
 func mapAccessTest(data map[string]interface{}) {
 	Aa := data["Aa"].(int)
 	Bb := data["Bb"].(int)

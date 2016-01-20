@@ -27,18 +27,11 @@ import (
 	"github.com/zenazn/goji/web"
 )
 
-/**
- * 一旦の仮置き！！
- */
-const SECRET_KEY = "0123456789ABCDEF"
-const USER_KEY   = "FEDCBA9876543210"
-
 type AnalyzeType int
 
 const (
-	OnDefault AnalyzeType = iota
-	OnLogin
-	OnNewUser
+	OnUserId AnalyzeType = iota
+	OnDefault
 )
 
 // エラーはJSONで返す
@@ -65,11 +58,9 @@ func BodyAnalyze(c *web.C, r *http.Request, analyzeType AnalyzeType) err.ErrWrit
 
 	// typeごとに分析
 	switch analyzeType {
+	case OnUserId:
+		bodyAnalyzeUserId(c, bodyBuf.Bytes())
 	case OnDefault:
-		bodyAnalyzeDefault(c, bodyBuf.Bytes())
-	case OnLogin:
-		bodyAnalyzeLogin(c, bodyBuf.Bytes())
-	case OnNewUser:
 		bodyAnalyzeNewUser(c, bodyBuf.Bytes())
 	default:
 		ew.Write("undefine analyze type!!")
@@ -86,7 +77,7 @@ func BodyAnalyze(c *web.C, r *http.Request, analyzeType AnalyzeType) err.ErrWrit
  *  \param   body    : bodyデータ
  */
 /**************************************************************************************************/
-func bodyAnalyzeDefault(c *web.C, body []byte) {
+func bodyAnalyzeUserId(c *web.C, body []byte) {
 	// 分割長
 	userIdPartLen := 2
 	bodyLen := len(body)
@@ -106,38 +97,6 @@ func bodyAnalyzeDefault(c *web.C, body []byte) {
 
 	// コンテキストに登録
 	c.Env[cKey.UserId] = userId
-	c.Env[cKey.Iv] = iv
-	c.Env[cKey.CryptData] = cryptData
-}
-
-/**************************************************************************************************/
-/*!
- *  type : Login時のデータ分析
- *
- *  \param   c       : コンテキスト
- *  \param   body    : bodyデータ
- */
-/**************************************************************************************************/
-func bodyAnalyzeLogin(c *web.C, body []byte) {
-	// 分割長
-	userIdPartLen := 18
-	bodyLen := len(body)
-
-	// bodyをユーザIDと、暗号化データに分ける
-	// バイト端のデータを結合
-	uBytes1 := body[:userIdPartLen]
-	uBytes2 := body[bodyLen-userIdPartLen : bodyLen]
-	uBytes := append(uBytes2, uBytes1...)
-
-	// convert to uuid
-	uuid := string(uBytes)
-
-	// 暗号化データ
-	iv := body[userIdPartLen : userIdPartLen+aes.BlockSize]
-	cryptData := body[userIdPartLen+aes.BlockSize : bodyLen-userIdPartLen]
-
-	// コンテキストに登録
-	c.Env[cKey.Uuid] = uuid
 	c.Env[cKey.Iv] = iv
 	c.Env[cKey.CryptData] = cryptData
 }
@@ -173,17 +132,17 @@ func bodyAnalyzeNewUser(c *web.C, body []byte) {
  *  \return  エラー情報
  */
 /**************************************************************************************************/
-func DecryptAndUnpack(c web.C, out interface{}, keyArgs ...string) err.ErrWriter {
+func DecryptAndUnpack(c web.C, out interface{}, secretKey string) err.ErrWriter {
 	ew := err.NewErrWriter()
+
+	c.Env[cKey.SecretKey] = secretKey
 
 	// 暗号化データ
 	iv := c.Env[cKey.Iv].([]byte)
 	cryptData := c.Env[cKey.CryptData].([]byte)
 
-	// TODO : secret keyはログイン時に生成したものを利用する
-
 	// decrypt
-	ci, err := aes.NewCipher([]byte(SECRET_KEY))
+	ci, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
 		return ew.Write(err)
 	}
@@ -192,14 +151,11 @@ func DecryptAndUnpack(c web.C, out interface{}, keyArgs ...string) err.ErrWriter
 	plain := make([]byte, len(cryptData))
 	cbcDecrypter.CryptBlocks(plain, cryptData)
 
-
-
 	// decode(codec)
 
-		mh := &codec.MsgpackHandle{RawToString: true}
-		dec := codec.NewDecoderBytes(plain, mh)
-		err = dec.Decode(out)
-
+	mh := &codec.MsgpackHandle{RawToString: true}
+	dec := codec.NewDecoderBytes(plain, mh)
+	err = dec.Decode(out)
 
 	if err != nil {
 		return ew.Write(err)
@@ -217,8 +173,10 @@ func DecryptAndUnpack(c web.C, out interface{}, keyArgs ...string) err.ErrWriter
  *  \return  暗号化済データ、エラー情報
  */
 /**************************************************************************************************/
-func PackAndEncrypt(data interface{}, keyArgs ...string) ([]byte, err.ErrWriter) {
+func PackAndEncrypt(c web.C, data interface{}) ([]byte, err.ErrWriter) {
 	ew := err.NewErrWriter()
+
+	secretKey := c.Env[cKey.SecretKey].(string)
 
 	// pkcs7 padding function
 	pkcs7Pad := func(packed []byte, blockLength int) ([]byte, error) {
@@ -235,18 +193,16 @@ func PackAndEncrypt(data interface{}, keyArgs ...string) ([]byte, err.ErrWriter)
 	var encodeData []byte
 
 	// encode(codec)
-
-		mh := &codec.MsgpackHandle{}
-		mh.MapType = reflect.TypeOf(data)
-		encoder := codec.NewEncoderBytes(&encodeData, mh)
-		e := encoder.Encode(data)
-		if e != nil {
-			return []byte(""), ew.Write(e)
-		}
-
+	mh := &codec.MsgpackHandle{}
+	mh.MapType = reflect.TypeOf(data)
+	encoder := codec.NewEncoderBytes(&encodeData, mh)
+	e := encoder.Encode(data)
+	if e != nil {
+		return []byte(""), ew.Write(e)
+	}
 
 	// new cipher
-	ci, err := aes.NewCipher([]byte(SECRET_KEY))
+	ci, err := aes.NewCipher([]byte(secretKey))
 	if err != nil {
 		return []byte(""), ew.Write(err)
 	}
@@ -258,7 +214,7 @@ func PackAndEncrypt(data interface{}, keyArgs ...string) ([]byte, err.ErrWriter)
 	}
 
 	// encrypt
-	iv := make([]byte, len(SECRET_KEY))
+	iv := make([]byte, len(secretKey))
 	out := make([]byte, len(in))
 	cbcEncrypter := cipher.NewCBCEncrypter(ci, iv)
 	cbcEncrypter.CryptBlocks(out, in)
@@ -273,11 +229,11 @@ func PackAndEncrypt(data interface{}, keyArgs ...string) ([]byte, err.ErrWriter)
  *  想定済みのエラーもこちらで返す
  */
 /**************************************************************************************************/
-func ResWrite(data interface{}, w http.ResponseWriter) {
+func ResWrite(c web.C, data interface{}, w http.ResponseWriter) {
 
-	out, ew := PackAndEncrypt(data)
+	out, ew := PackAndEncrypt(c, data)
 	if ew.HasErr() {
-		ResError(InCorrectData, "pack and enctypt error", w, ew)
+		ResError("pack and enctypt error", w, ew)
 		return
 	}
 	w.Header().Set("Content-Type", "application/msgpack; charset=UTF-8")
@@ -289,10 +245,10 @@ func ResWrite(data interface{}, w http.ResponseWriter) {
  *  エラー投げる
  */
 /**************************************************************************************************/
-func ResError(status GameErrorStatus, msg string, w http.ResponseWriter, ew err.ErrWriter) {
+func ResError(msg string, w http.ResponseWriter, ew err.ErrWriter) {
 	v := append([]interface{}{msg, ":"}, ew.Err()...)
 	fmt.Println("ERROR", v)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(errorResponse{"status": status, "message": msg})
+	json.NewEncoder(w).Encode(errorResponse{"message": msg})
 }

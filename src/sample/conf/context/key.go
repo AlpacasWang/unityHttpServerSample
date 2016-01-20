@@ -4,13 +4,9 @@ package context
  * リクエストコンテキスト
  */
 const (
-	GContext string = "gContext"
+	SecretKey string = "SecretKey"
 
 	UserId    = "userId"
-	Uuid      = "Uuid"
 	Iv        = "Iv"
 	CryptData = "CryptData"
-
-	ReceiveData = "ReceiveData"
-
 )
