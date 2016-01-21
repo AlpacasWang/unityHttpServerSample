@@ -24,6 +24,7 @@ type routeMap map[string]func(web.C, http.ResponseWriter, *http.Request)
 
 var sampleRoute = routeMap{
 	"request": controller.SampleTest,
+	"error":   controller.SampleError,
 }
 
 var sampleRoute2 = routeMap{

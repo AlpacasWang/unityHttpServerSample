@@ -137,6 +137,39 @@ func SampleTest2(c web.C, w http.ResponseWriter, r *http.Request) {
 
 /**************************************************************************************************/
 /*!
+ *  サンプルエラー
+ */
+/**************************************************************************************************/
+func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
+
+	secretKey := SECRET_KEY
+
+	var rec = map[string]interface{}{}
+	ew := DecryptAndUnpack(c, rec, secretKey)
+	if ew.HasErr() {
+		ResError("decrypt and unpack error", w, ew)
+		return
+	}
+
+	status := http.StatusOK
+
+	d := analyze(rec)
+	message := d["message"].(string)
+	switch message {
+	case "bad_request":
+		status = http.StatusBadRequest
+	case "unauthorized":
+		status = http.StatusUnauthorized
+	case "maintenance":
+		status = http.StatusServiceUnavailable
+	case "client_update":
+		status = http.StatusForbidden
+	}
+	w.WriteHeader(status)
+}
+
+/**************************************************************************************************/
+/*!
  *  変数へのアクセステスト
  */
 /**************************************************************************************************/
