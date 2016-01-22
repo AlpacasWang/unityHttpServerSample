@@ -2,14 +2,11 @@ package controller
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"reflect"
-
-	"sample/conf/context"
-
-	"math/rand"
 	"sample/common/err"
-
+	"sample/conf/context"
 	"time"
 
 	"github.com/zenazn/goji/web"
@@ -152,6 +149,7 @@ func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := http.StatusOK
+	msg := ""
 
 	d := analyze(rec)
 	message := d["message"].(string)
@@ -164,8 +162,14 @@ func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
 		status = http.StatusServiceUnavailable
 	case "client_update":
 		status = http.StatusForbidden
+	case "internal":
+		status = http.StatusInternalServerError
+		msg = "responseFromServer"
 	}
+	// send error
+	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 	w.WriteHeader(status)
+	w.Write([]byte(msg))
 }
 
 /**************************************************************************************************/
