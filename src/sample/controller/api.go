@@ -164,7 +164,10 @@ func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
 		status = http.StatusForbidden
 	case "internal":
 		status = http.StatusInternalServerError
-		msg = "responseFromServer"
+		msg = "procStop"
+	case "internal2":
+		status = http.StatusInternalServerError
+		msg = "procRetry"
 	}
 	// send error
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
