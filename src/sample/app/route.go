@@ -32,7 +32,8 @@ var sampleRoute2 = routeMap{
 }
 
 var webRoute = routeMap{
-	"ping": controller.Ping,
+	"ping":       controller.Ping,
+	"ping_error": controller.PingError,
 }
 
 /**************************************************************************************************/

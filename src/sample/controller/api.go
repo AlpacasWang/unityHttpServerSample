@@ -169,6 +169,7 @@ func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
 		status = http.StatusInternalServerError
 		msg = "procRetry"
 	}
+
 	// send error
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 	w.WriteHeader(status)
@@ -230,7 +231,7 @@ func mapAccessTest(data map[string]interface{}) {
 func analyze(rec map[string]interface{}) map[string]interface{} {
 	keys := rec["keySlots"].([]interface{})
 	values := rec["valueSlots"].([]interface{})
-	num := rec["generation"].(int64)
+	num := rec["count"].(int64)
 	//log.Debug(keys)
 	//log.Debug(values)
 
