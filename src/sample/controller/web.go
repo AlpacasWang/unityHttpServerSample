@@ -10,18 +10,16 @@ package controller
 /**************************************************************************************************/
 
 import (
+	"github.com/labstack/echo"
 	"net/http"
-
-	"github.com/zenazn/goji/web"
 )
 
-func Ping(c web.C, w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-	w.Write([]byte("pong"))
+func Ping(c echo.Context) error{
+	c.String(http.StatusOK,"pong");
+	return nil;
 }
 
-func PingError(c web.C, w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusBadRequest)
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-	w.Write([]byte("pong error"))
+func PingError(c echo.Context) error{
+	c.String(http.StatusBadRequest,"pong error");
+	return nil;
 }

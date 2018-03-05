@@ -10,17 +10,15 @@ package app
 /**************************************************************************************************/
 import (
 	"fmt"
-	"net/http"
 	"reflect"
 	"runtime"
-	"sample/controller"
 	"strings"
+	"unityHttpServerSample/src/sample/controller"
 
-	"github.com/zenazn/goji"
-	"github.com/zenazn/goji/web"
+	"github.com/labstack/echo"
 )
 
-type routeMap map[string]func(web.C, http.ResponseWriter, *http.Request)
+type routeMap map[string]func(echo.Context) error
 
 var sampleRoute = routeMap{
 	"request": controller.SampleTest,
@@ -41,43 +39,54 @@ var webRoute = routeMap{
  *  post routing
  */
 /**************************************************************************************************/
-func postRoute(prefix string, routeConf map[string]func(web.C, http.ResponseWriter, *http.Request)) *web.Mux {
-	w := web.New()
-	url := prefix + "/"
+func postRoute(root *echo.Echo, prefix string, routeConf routeMap, middleware ...echo.MiddlewareFunc) {
+	// ミドルウェアをまとめる
+	var m []echo.MiddlewareFunc
+	m = append(m, middleware...)
+
+	// サブルート生成
+	sub := root.Group(prefix, m...)
 
 	// ROUTE TOP
-	fmt.Println("[ROUTE]", url)
+	fmt.Println("[ROUTE]", prefix)
 	for k, v := range routeConf {
-		w.Post(url+k, v)
+		sub.POST("/"+k, v)
 		// ROUTE PRINT
 		space := strings.Repeat(" ", 30-len(k))
 		vOf := reflect.ValueOf(v)
 		fmt.Println("POST :", k, space, "->", runtime.FuncForPC(vOf.Pointer()).Name())
 	}
-
-	goji.Handle(url+"*", w)
-	return w
 }
 
 /**************************************************************************************************/
-/*!
- *  get routing
- */
+/*
+  GETで受け付けるルートを設定する
+
+  argument
+    root       : ルート直下
+    prefix     : 接頭辞URL
+    routeConf  : URLハンドラマップ
+    middleware : 事前処理群
+
+  return
+    ディスパッチャ
+*/
 /**************************************************************************************************/
-func getRoute(prefix string, routeConf map[string]func(web.C, http.ResponseWriter, *http.Request)) *web.Mux {
-	w := web.New()
-	url := prefix + "/"
+func getRoute(root *echo.Echo, prefix string, routeConf routeMap, middleware ...echo.MiddlewareFunc) {
+	// ミドルウェアをまとめる
+	var m []echo.MiddlewareFunc
+	m = append(m, middleware...)
+
+	// サブルート生成
+	sub := root.Group(prefix)
 
 	// ROUTE TOP
-	fmt.Println("[ROUTE]", url)
+	fmt.Println("[ROUTE]", prefix)
 	for k, v := range routeConf {
-		w.Get(url+k, v)
+		sub.GET(k, v)
 		// ROUTE PRINT
 		space := strings.Repeat(" ", 30-len(k))
 		vOf := reflect.ValueOf(v)
 		fmt.Println("GET :", k, space, "->", runtime.FuncForPC(vOf.Pointer()).Name())
 	}
-
-	goji.Handle(url+"*", w)
-	return w
 }

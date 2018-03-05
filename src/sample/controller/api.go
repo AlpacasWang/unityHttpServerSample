@@ -5,11 +5,11 @@ import (
 	"math/rand"
 	"net/http"
 	"reflect"
-	"sample/common/err"
-	"sample/conf/context"
 	"time"
+	"unityHttpServerSample/src/sample/common/err"
+	"unityHttpServerSample/src/sample/conf/context"
 
-	"github.com/zenazn/goji/web"
+	"github.com/labstack/echo"
 )
 
 // 暗号化キー
@@ -38,15 +38,15 @@ type StructTestReceive struct {
  *  サンプル実装
  */
 /**************************************************************************************************/
-func SampleTest(c web.C, w http.ResponseWriter, r *http.Request) {
+func SampleTest(c echo.Context) error{
 
 	secretKey := SECRET_KEY
 
 	var rec = map[string]interface{}{}
 	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
-		ResError("decrypt and unpack error", w, ew)
-		return
+		ResError("decrypt and unpack error", c, ew)
+		return nil;
 	}
 	d := analyze(rec)
 	fmt.Println("get param : ")
@@ -92,7 +92,8 @@ func SampleTest(c web.C, w http.ResponseWriter, r *http.Request) {
 	ret.StructArray = arrays
 	fmt.Println("ret data  : ")
 	fmt.Println(ret)
-	ResWrite(c, ret, w)
+	ResWrite(c, ret)
+	return nil;
 }
 
 /**************************************************************************************************/
@@ -100,11 +101,11 @@ func SampleTest(c web.C, w http.ResponseWriter, r *http.Request) {
  *  サンプル実装2
  */
 /**************************************************************************************************/
-func SampleTest2(c web.C, w http.ResponseWriter, r *http.Request) {
+func SampleTest2(c echo.Context) error{
 
-	userId, ok := c.Env[context.UserId]
-	if !ok {
-		ResError("userId not found", w, err.NewErrWriter())
+	userId := c.Get(context.UserId)
+	if userId == nil {
+		ResError("userId not found", c, err.NewErrWriter())
 	}
 	fmt.Println("user id   : ", userId)
 
@@ -113,8 +114,8 @@ func SampleTest2(c web.C, w http.ResponseWriter, r *http.Request) {
 	var rec = map[string]interface{}{}
 	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
-		ResError("decrypt and unpack error", w, ew)
-		return
+		ResError("decrypt and unpack error", c, ew)
+		return nil;
 	}
 	d := analyze(rec)
 	fmt.Println("get param : ", d)
@@ -129,7 +130,8 @@ func SampleTest2(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	ret.Num = rand.Intn(100000)
 	fmt.Println("ret num   : ", ret.Num)
-	ResWrite(c, ret, w)
+	ResWrite(c, ret)
+	return nil;
 }
 
 /**************************************************************************************************/
@@ -137,15 +139,15 @@ func SampleTest2(c web.C, w http.ResponseWriter, r *http.Request) {
  *  サンプルエラー
  */
 /**************************************************************************************************/
-func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
+func SampleError(c echo.Context) error{
 
 	secretKey := SECRET_KEY
 
 	var rec = map[string]interface{}{}
 	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
-		ResError("decrypt and unpack error", w, ew)
-		return
+		ResError("decrypt and unpack error", c, ew)
+		return nil;
 	}
 
 	status := http.StatusOK
@@ -171,9 +173,8 @@ func SampleError(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send error
-	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-	w.WriteHeader(status)
-	w.Write([]byte(msg))
+	c.String(status,msg);
+	return nil;
 }
 
 /**************************************************************************************************/

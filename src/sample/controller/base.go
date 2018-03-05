@@ -16,15 +16,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net/http"
-	"sample/common/err"
-	cKey "sample/conf/context"
+	"unityHttpServerSample/src/sample/common/err"
+	cKey "unityHttpServerSample/src/sample/conf/context"
 
 	"reflect"
 
-	"encoding/json"
-
-	"github.com/ugorji/go/codec"
-	"github.com/zenazn/goji/web"
+	"github.com/labstack/echo"
+	"github.com/shamoto-donuts/go/codec"
 )
 
 type AnalyzeType int
@@ -46,12 +44,12 @@ type errorResponse map[string]interface{}
  *  \return  エラー情報
  */
 /**************************************************************************************************/
-func BodyAnalyze(c *web.C, r *http.Request, analyzeType AnalyzeType) err.ErrWriter {
+func BodyAnalyze(c echo.Context, analyzeType AnalyzeType) err.ErrWriter {
 	ew := err.NewErrWriter()
 
 	// get body
 	bodyBuf := new(bytes.Buffer)
-	_, err := bodyBuf.ReadFrom(r.Body)
+	_, err := bodyBuf.ReadFrom(c.Request().Body)
 	if err != nil {
 		return ew.Write(err)
 	}
@@ -77,7 +75,7 @@ func BodyAnalyze(c *web.C, r *http.Request, analyzeType AnalyzeType) err.ErrWrit
  *  \param   body    : bodyデータ
  */
 /**************************************************************************************************/
-func bodyAnalyzeUserId(c *web.C, body []byte) {
+func bodyAnalyzeUserId(c echo.Context, body []byte) {
 	// 分割長
 	userIdPartLen := 2
 	bodyLen := len(body)
@@ -96,9 +94,9 @@ func bodyAnalyzeUserId(c *web.C, body []byte) {
 	cryptData := body[userIdPartLen+aes.BlockSize : bodyLen-userIdPartLen]
 
 	// コンテキストに登録
-	c.Env[cKey.UserId] = userId
-	c.Env[cKey.Iv] = iv
-	c.Env[cKey.CryptData] = cryptData
+	c.Set(cKey.UserId,userId)
+	c.Set(cKey.Iv,iv)
+	c.Set(cKey.CryptData,cryptData)
 }
 
 /**************************************************************************************************/
@@ -109,7 +107,7 @@ func bodyAnalyzeUserId(c *web.C, body []byte) {
  *  \param   body    : bodyデータ
  */
 /**************************************************************************************************/
-func bodyAnalyzeNewUser(c *web.C, body []byte) {
+func bodyAnalyzeNewUser(c echo.Context, body []byte) {
 	// 分割長
 	bodyLen := len(body)
 
@@ -118,8 +116,8 @@ func bodyAnalyzeNewUser(c *web.C, body []byte) {
 	cryptData := body[aes.BlockSize:bodyLen]
 
 	// コンテキストに登録
-	c.Env[cKey.Iv] = iv
-	c.Env[cKey.CryptData] = cryptData
+	c.Set(cKey.Iv,iv)
+	c.Set(cKey.CryptData,cryptData)
 }
 
 /**************************************************************************************************/
@@ -132,14 +130,14 @@ func bodyAnalyzeNewUser(c *web.C, body []byte) {
  *  \return  エラー情報
  */
 /**************************************************************************************************/
-func DecryptAndUnpack(c web.C, out interface{}, secretKey string) err.ErrWriter {
+func DecryptAndUnpack(c echo.Context, out interface{}, secretKey string) err.ErrWriter {
 	ew := err.NewErrWriter()
 
-	c.Env[cKey.SecretKey] = secretKey
+	c.Set(cKey.SecretKey, secretKey)
 
 	// 暗号化データ
-	iv := c.Env[cKey.Iv].([]byte)
-	cryptData := c.Env[cKey.CryptData].([]byte)
+	iv := c.Get(cKey.Iv).([]byte)
+	cryptData := c.Get(cKey.CryptData).([]byte)
 
 	// decrypt
 	ci, err := aes.NewCipher([]byte(secretKey))
@@ -173,10 +171,10 @@ func DecryptAndUnpack(c web.C, out interface{}, secretKey string) err.ErrWriter 
  *  \return  暗号化済データ、エラー情報
  */
 /**************************************************************************************************/
-func PackAndEncrypt(c web.C, data interface{}) ([]byte, err.ErrWriter) {
+func PackAndEncrypt(c echo.Context, data interface{}) ([]byte, err.ErrWriter) {
 	ew := err.NewErrWriter()
 
-	secretKey := c.Env[cKey.SecretKey].(string)
+	secretKey := c.Get(cKey.SecretKey).(string);
 
 	// pkcs7 padding function
 	pkcs7Pad := func(packed []byte, blockLength int) ([]byte, error) {
@@ -229,15 +227,14 @@ func PackAndEncrypt(c web.C, data interface{}) ([]byte, err.ErrWriter) {
  *  想定済みのエラーもこちらで返す
  */
 /**************************************************************************************************/
-func ResWrite(c web.C, data interface{}, w http.ResponseWriter) {
+func ResWrite(c echo.Context, data interface{}) {
 
 	out, ew := PackAndEncrypt(c, data)
 	if ew.HasErr() {
-		ResError("pack and enctypt error", w, ew)
+		ResError("pack and enctypt error", c,ew)
 		return
 	}
-	w.Header().Set("Content-Type", "application/msgpack; charset=UTF-8")
-	w.Write(out)
+	c.Blob(http.StatusOK,"application/msgpack; charset=UTF-8",out);
 }
 
 /**************************************************************************************************/
@@ -245,10 +242,8 @@ func ResWrite(c web.C, data interface{}, w http.ResponseWriter) {
  *  エラー投げる
  */
 /**************************************************************************************************/
-func ResError(msg string, w http.ResponseWriter, ew err.ErrWriter) {
+func ResError(msg string,c echo.Context,ew err.ErrWriter) {
 	v := append([]interface{}{msg, ":"}, ew.Err()...)
 	fmt.Println("ERROR", v)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(errorResponse{"message": msg})
+	c.JSON(http.StatusInternalServerError,errorResponse{"message": msg})
 }

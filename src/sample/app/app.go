@@ -9,14 +9,11 @@ package app
  */
 /**************************************************************************************************/
 import (
-	"flag"
 	"math/rand"
-	"net/http"
-	. "sample/controller"
 	"time"
+	. "unityHttpServerSample/src/sample/controller"
 
-	"github.com/zenazn/goji"
-	"github.com/zenazn/goji/web"
+	"github.com/labstack/echo"
 )
 
 /**************************************************************************************************/
@@ -28,42 +25,23 @@ func Run() {
 
 	rand.Seed(time.Now().UnixNano())
 
+	ec := echo.New()
+
 	// make route
-	t := postRoute("/sample1", sampleRoute)
-	t.Use(UseDefault)
+	postRoute(ec,"/sample1", sampleRoute,analyze(OnDefault))
+	postRoute(ec,"/sample2", sampleRoute2,analyze(OnUserId))
 
-	t2 := postRoute("/sample2", sampleRoute2)
-	t2.Use(UserUserId)
-
-	getRoute("/web", webRoute)
+	getRoute(ec,"/web", webRoute)
 
 	// PORTを設定
-	flag.Set("bind", ":9999")
-	goji.Serve()
+	ec.Logger.Fatal(ec.Start(":9999"))
 }
 
-/**************************************************************************************************/
-/*!
- *  AnalyzeType : NewUserの事前処理
- */
-/**************************************************************************************************/
-func UseDefault(c *web.C, h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		BodyAnalyze(c, r, AnalyzeType(OnDefault))
-		h.ServeHTTP(w, r)
+func analyze(analyzeType AnalyzeType) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			BodyAnalyze(c, analyzeType)
+			return next(c)
+		}
 	}
-	return http.HandlerFunc(fn)
-}
-
-/**************************************************************************************************/
-/*!
- *  AnalyzeType : Defaultの事前処理
- */
-/**************************************************************************************************/
-func UserUserId(c *web.C, h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		BodyAnalyze(c, r, AnalyzeType(OnUserId))
-		h.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
 }
