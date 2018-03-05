@@ -83,7 +83,7 @@ func getRoute(root *echo.Echo, prefix string, routeConf routeMap, middleware ...
 	// ROUTE TOP
 	fmt.Println("[ROUTE]", prefix)
 	for k, v := range routeConf {
-		sub.GET(k, v)
+		sub.GET("/"+k, v)
 		// ROUTE PRINT
 		space := strings.Repeat(" ", 30-len(k))
 		vOf := reflect.ValueOf(v)
