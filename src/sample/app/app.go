@@ -10,8 +10,8 @@ package app
 /**************************************************************************************************/
 import (
 	"math/rand"
+	. "sample/controller"
 	"time"
-	. "unityHttpServerSample/src/sample/controller"
 
 	"github.com/labstack/echo"
 )
@@ -28,16 +28,16 @@ func Run() {
 	ec := echo.New()
 
 	// make route
-	postRoute(ec,"/sample1", sampleRoute,analyze(OnDefault))
-	postRoute(ec,"/sample2", sampleRoute2,analyze(OnUserId))
+	postRoute(ec, "/sample1", sampleRoute, apiAnalyze(OnDefault))
+	postRoute(ec, "/sample2", sampleRoute2, apiAnalyze(OnUserId))
 
-	getRoute(ec,"/web", webRoute)
+	getRoute(ec, "/web", webRoute)
 
 	// PORTを設定
 	ec.Logger.Fatal(ec.Start(":9999"))
 }
 
-func analyze(analyzeType AnalyzeType) echo.MiddlewareFunc {
+func apiAnalyze(analyzeType AnalyzeType) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			BodyAnalyze(c, analyzeType)

@@ -16,8 +16,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net/http"
-	"unityHttpServerSample/src/sample/common/err"
-	cKey "unityHttpServerSample/src/sample/conf/context"
+	"sample/common/err"
+	cKey "sample/conf/context"
 
 	"reflect"
 
@@ -94,9 +94,9 @@ func bodyAnalyzeUserId(c echo.Context, body []byte) {
 	cryptData := body[userIdPartLen+aes.BlockSize : bodyLen-userIdPartLen]
 
 	// コンテキストに登録
-	c.Set(cKey.UserId,userId)
-	c.Set(cKey.Iv,iv)
-	c.Set(cKey.CryptData,cryptData)
+	c.Set(cKey.UserId, userId)
+	c.Set(cKey.Iv, iv)
+	c.Set(cKey.CryptData, cryptData)
 }
 
 /**************************************************************************************************/
@@ -116,8 +116,8 @@ func bodyAnalyzeNewUser(c echo.Context, body []byte) {
 	cryptData := body[aes.BlockSize:bodyLen]
 
 	// コンテキストに登録
-	c.Set(cKey.Iv,iv)
-	c.Set(cKey.CryptData,cryptData)
+	c.Set(cKey.Iv, iv)
+	c.Set(cKey.CryptData, cryptData)
 }
 
 /**************************************************************************************************/
@@ -134,7 +134,6 @@ func DecryptAndUnpack(c echo.Context, out interface{}, secretKey string) err.Err
 	ew := err.NewErrWriter()
 
 	c.Set(cKey.SecretKey, secretKey)
-
 	// 暗号化データ
 	iv := c.Get(cKey.Iv).([]byte)
 	cryptData := c.Get(cKey.CryptData).([]byte)
@@ -174,7 +173,7 @@ func DecryptAndUnpack(c echo.Context, out interface{}, secretKey string) err.Err
 func PackAndEncrypt(c echo.Context, data interface{}) ([]byte, err.ErrWriter) {
 	ew := err.NewErrWriter()
 
-	secretKey := c.Get(cKey.SecretKey).(string);
+	secretKey := c.Get(cKey.SecretKey).(string)
 
 	// pkcs7 padding function
 	pkcs7Pad := func(packed []byte, blockLength int) ([]byte, error) {
@@ -231,10 +230,10 @@ func ResWrite(c echo.Context, data interface{}) {
 
 	out, ew := PackAndEncrypt(c, data)
 	if ew.HasErr() {
-		ResError("pack and enctypt error", c,ew)
+		ResError("pack and enctypt error", c, ew)
 		return
 	}
-	c.Blob(http.StatusOK,"application/msgpack; charset=UTF-8",out);
+	c.Blob(http.StatusOK, "application/msgpack; charset=UTF-8", out)
 }
 
 /**************************************************************************************************/
@@ -242,8 +241,8 @@ func ResWrite(c echo.Context, data interface{}) {
  *  エラー投げる
  */
 /**************************************************************************************************/
-func ResError(msg string,c echo.Context,ew err.ErrWriter) {
+func ResError(msg string, c echo.Context, ew err.ErrWriter) {
 	v := append([]interface{}{msg, ":"}, ew.Err()...)
 	fmt.Println("ERROR", v)
-	c.JSON(http.StatusInternalServerError,errorResponse{"message": msg})
+	c.JSON(http.StatusInternalServerError, errorResponse{"message": msg})
 }

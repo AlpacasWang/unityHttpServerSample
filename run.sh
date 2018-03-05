@@ -4,15 +4,20 @@ export PRODUCTION=1
 PJ=unitySample
 FILE=unitySample
 
+DIR=`dirname $0`
+
 start() {
-    cd /home/game/git/${PJ}/bin;
-    exec nohup /home/game/git/${PJ}/bin/${FILE} > /tmp/${FILE}.out 2>&1&
-    echo $! > /home/game/pids/${FILE}.pid
+
+    cd ${DIR}/bin;
+    exec nohup ${FILE} > /tmp/${FILE}.out 2>&1&
+    touch ${DIR}/${FILE}.pid
+    echo $! > ${DIR}/${FILE}.pid
     disown
 }
 
 stop() {
-    kill `cat /home/game/pids/${FILE}.pid`
+    cd ${DIR}/bin;
+    kill `cat ${DIR}/${FILE}.pid`
 }
 
 

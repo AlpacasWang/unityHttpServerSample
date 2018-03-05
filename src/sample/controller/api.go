@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"net/http"
 	"reflect"
+	"sample/common/err"
+	"sample/conf/context"
 	"time"
-	"unityHttpServerSample/src/sample/common/err"
-	"unityHttpServerSample/src/sample/conf/context"
 
 	"github.com/labstack/echo"
 )
@@ -38,7 +38,7 @@ type StructTestReceive struct {
  *  サンプル実装
  */
 /**************************************************************************************************/
-func SampleTest(c echo.Context) error{
+func SampleTest(c echo.Context) error {
 
 	secretKey := SECRET_KEY
 
@@ -46,7 +46,7 @@ func SampleTest(c echo.Context) error{
 	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
 		ResError("decrypt and unpack error", c, ew)
-		return nil;
+		return nil
 	}
 	d := analyze(rec)
 	fmt.Println("get param : ")
@@ -93,7 +93,7 @@ func SampleTest(c echo.Context) error{
 	fmt.Println("ret data  : ")
 	fmt.Println(ret)
 	ResWrite(c, ret)
-	return nil;
+	return nil
 }
 
 /**************************************************************************************************/
@@ -101,7 +101,7 @@ func SampleTest(c echo.Context) error{
  *  サンプル実装2
  */
 /**************************************************************************************************/
-func SampleTest2(c echo.Context) error{
+func SampleTest2(c echo.Context) error {
 
 	userId := c.Get(context.UserId)
 	if userId == nil {
@@ -115,7 +115,7 @@ func SampleTest2(c echo.Context) error{
 	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
 		ResError("decrypt and unpack error", c, ew)
-		return nil;
+		return nil
 	}
 	d := analyze(rec)
 	fmt.Println("get param : ", d)
@@ -131,7 +131,7 @@ func SampleTest2(c echo.Context) error{
 	ret.Num = rand.Intn(100000)
 	fmt.Println("ret num   : ", ret.Num)
 	ResWrite(c, ret)
-	return nil;
+	return nil
 }
 
 /**************************************************************************************************/
@@ -139,7 +139,7 @@ func SampleTest2(c echo.Context) error{
  *  サンプルエラー
  */
 /**************************************************************************************************/
-func SampleError(c echo.Context) error{
+func SampleError(c echo.Context) error {
 
 	secretKey := SECRET_KEY
 
@@ -147,7 +147,7 @@ func SampleError(c echo.Context) error{
 	ew := DecryptAndUnpack(c, rec, secretKey)
 	if ew.HasErr() {
 		ResError("decrypt and unpack error", c, ew)
-		return nil;
+		return nil
 	}
 
 	status := http.StatusOK
@@ -173,8 +173,12 @@ func SampleError(c echo.Context) error{
 	}
 
 	// send error
-	c.String(status,msg);
-	return nil;
+	errorTemp := c.String(status, msg)
+	if errorTemp != nil {
+		fmt.Println(errorTemp)
+	}
+	fmt.Println("SampleError:", message)
+	return nil
 }
 
 /**************************************************************************************************/
