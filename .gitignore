@@ -35,3 +35,4 @@ src/tmp/
 # エディタ(intellj/vscode)
 .idea/
 *.iml
+.vscode/
