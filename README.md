@@ -2,10 +2,10 @@
 
 ・使い方
 
-```sh
+```shell command
 cd project_dir
-sh build.sh
-./bin/unitySample
+./build.sh
+./run.sh [start/stop/restart]
 ```
 
 port:9999でlistenします。
