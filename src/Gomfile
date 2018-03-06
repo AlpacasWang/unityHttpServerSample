@@ -1,0 +1,5 @@
+# Web Framework
+gom 'github.com/labstack/echo', :commit => '0696d555863f15fdea1a80bd7e06ac662a131a96'
+
+# MessagePack
+gom 'github.com/shamoto-donuts/go/codec'

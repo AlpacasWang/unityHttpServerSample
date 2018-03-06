@@ -1,7 +1,8 @@
-.DS_Store
-coverage.txt
-_test
+# Website
+website/public
+
+# Glide
 vendor
-.idea
-*.iml
-*.out
+
+.DS_Store
+_test
