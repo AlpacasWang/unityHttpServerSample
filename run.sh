@@ -7,12 +7,10 @@ FILE=unitySample
 DIR=`dirname $0`
 
 start() {
-
     cd ${DIR}/bin;
-    exec nohup ${FILE} > /tmp/${FILE}.out 2>&1&
+    nohup ./${FILE} > /tmp/${FILE}.out 2>&1&
     touch ${DIR}/${FILE}.pid
     echo $! > ${DIR}/${FILE}.pid
-    disown
 }
 
 stop() {
